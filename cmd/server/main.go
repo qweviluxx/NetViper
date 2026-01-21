@@ -8,6 +8,16 @@ import (
 	"github.com/qweviluxx/GopherScanner.git/internal"
 )
 
+func validation(w http.ResponseWriter, h string, s, e int) bool {
+
+	if h == "" || s < 0 || e < 0 || e < s || s > 65535 || e > 65535 {
+		http.Error(w, "Bad params", http.StatusBadRequest)
+		return false
+	}
+
+	return true
+}
+
 func handler(w http.ResponseWriter, r *http.Request) {
 	scanner := internal.NewScanner("tcp")
 
@@ -25,14 +35,13 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	endPort, err := strconv.Atoi(params.Get("endport"))
-
 	if err != nil {
 		http.Error(w, "Parsing param error:", http.StatusBadRequest)
 		return
 	}
 
-	if hostname == "" {
-		http.Error(w, "Parsing param error:", http.StatusBadRequest)
+	valid := validation(w, hostname, startPort, endPort)
+	if !valid {
 		return
 	}
 
