@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"sync"
@@ -21,9 +22,13 @@ func NewScanner(protocol string) *Scanner {
 	}
 }
 
-func (s *Scanner) ScanPort(hostname string, port int) (bool, error) {
+func (s *Scanner) ScanPort(ctx context.Context, hostname string, port int) (bool, error) {
 	address := hostname + fmt.Sprintf(":%d", port)
-	conn, err := net.DialTimeout(s.Protocol, address, s.timeout)
+	d := net.Dialer{}
+	childCtx, cancel := context.WithTimeout(ctx, s.timeout)
+
+	conn, err := d.DialContext(childCtx, s.Protocol, address)
+	cancel()
 
 	if err != nil {
 		return false, err
@@ -32,7 +37,7 @@ func (s *Scanner) ScanPort(hostname string, port int) (bool, error) {
 	return true, nil
 }
 
-func (s *Scanner) ScanRange(hostname string, startPort, endPort int) []int {
+func (s *Scanner) ScanRange(ctx context.Context, hostname string, startPort, endPort int) []int {
 
 	size := endPort - startPort + 1
 	openedPorts := []int{}
@@ -44,7 +49,7 @@ func (s *Scanner) ScanRange(hostname string, startPort, endPort int) []int {
 
 	for i := 0; i < s.workerCount; i++ {
 		wg.Add(1)
-		go s.worker(&wg, hostname, ports, result)
+		go s.worker(ctx, &wg, hostname, ports, result)
 	}
 
 	go func() {
@@ -69,10 +74,15 @@ func (s *Scanner) ScanRange(hostname string, startPort, endPort int) []int {
 	return openedPorts
 }
 
-func (s *Scanner) worker(wg *sync.WaitGroup, hostname string, ports chan int, result chan int) {
+func (s *Scanner) worker(ctx context.Context, wg *sync.WaitGroup, hostname string, ports chan int, result chan int) {
 	defer wg.Done()
 	for i := range ports {
-		ok, _ := s.ScanPort(hostname, i)
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+		ok, _ := s.ScanPort(ctx, hostname, i)
 		if ok {
 			result <- i
 		} else {

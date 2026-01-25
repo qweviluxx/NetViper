@@ -53,7 +53,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ports := scanner.ScanRange(hostname, startPort, endPort)
+	ctx := r.Context()
+	ports := scanner.ScanRange(ctx, hostname, startPort, endPort)
 
 	response := &ScanResponse{Hostname: hostname, Ports: ports}
 	w.Header().Set("Content-Type", "application/json")
