@@ -2,96 +2,85 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GopherScanner 🐹</title>
+    <title>GopherScanner — Dashboard 🐹</title>
     <style>
-        :root { --go-blue: #00add8; --bg: #f4f7f9; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); display: flex; justify-content: center; padding-top: 50px; color: #333; }
-        .container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 450px; }
-        h1 { color: var(--go-blue); text-align: center; margin-bottom: 1.5rem; }
-        .form-group { margin-bottom: 1rem; }
-        label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; }
-        input { width: 100%; padding: 0.8rem; border: 2px solid #e1e8ed; border-radius: 8px; box-sizing: border-box; transition: border-color 0.3s; }
-        input:focus { outline: none; border-color: var(--go-blue); }
-        button { width: 100%; padding: 1rem; background: var(--go-blue); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem; transition: transform 0.1s, background 0.3s; }
-        button:active { transform: scale(0.98); }
-        button:disabled { background: #ccc; cursor: not-allowed; }
-        #results { margin-top: 2rem; }
-        .port-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 1rem; }
-        .port-item { background: #e1f5fe; color: #01579b; padding: 6px 12px; border-radius: 6px; font-family: monospace; font-weight: bold; border: 1px solid #b3e5fc; }
-        .loader { text-align: center; color: #666; font-style: italic; }
-        .error { color: #d32f2f; background: #ffebee; padding: 1rem; border-radius: 8px; border-left: 4px solid #d32f2f; }
+        :root { --go-blue: #00add8; --dark: #2d3436; }
+        body { font-family: 'Inter', sans-serif; background: #f0f2f5; display: flex; flex-direction: column; align-items: center; padding: 40px; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 500px; margin-bottom: 20px; }
+        h2 { color: var(--go-blue); margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .input-group { margin: 15px 0; }
+        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: var(--go-blue); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        button:hover { opacity: 0.9; }
+        
+        #results, #history { margin-top: 20px; }
+        .scan-item { background: #f9f9f9; padding: 10px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--go-blue); }
+        .port-tag { display: inline-block; background: #e1f5fe; color: #01579b; padding: 2px 8px; border-radius: 4px; margin: 2px; font-size: 12px; font-family: monospace; }
+        .timestamp { font-size: 11px; color: #999; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>Gopher Scanner</h1>
-    
-    <div class="form-group">
-        <label>Hostname</label>
-        <input type="text" id="host" value="localhost" placeholder="scanme.nmap.org">
-    </div>
-    
-    <div style="display: flex; gap: 1rem;">
-        <div class="form-group" style="flex: 1;">
-            <label>Start Port</label>
-            <input type="number" id="start" value="8070">
-        </div>
-        <div class="form-group" style="flex: 1;">
-            <label>End Port</label>
+    <div class="card">
+        <h2>Новое сканирование</h2>
+        <div class="input-group"><input type="text" id="host" value="localhost"></div>
+        <div style="display:flex; gap:10px">
+            <input type="number" id="start" value="8080">
             <input type="number" id="end" value="8090">
         </div>
+        <button onclick="runScan()" style="margin-top:15px">Запустить</button>
+        <div id="results"></div>
     </div>
 
-    <button id="scanBtn">Запустить сканирование</button>
+    <div class="card">
+        <h2>История (из SQLite)</h2>
+        <button onclick="loadHistory()" style="background: #636e72; margin-bottom: 15px;">Обновить историю</button>
+        <div id="history"></div>
+    </div>
 
-    <div id="results"></div>
-</div>
+    <script>
+        const API_URL = 'http://localhost:8080';
 
-<script>
-    const btn = document.getElementById('scanBtn');
-    const resDiv = document.getElementById('results');
-
-    btn.addEventListener('click', async () => {
-        const host = document.getElementById('host').value;
-        const start = document.getElementById('start').value;
-        const end = document.getElementById('end').value;
-
-        // Очистка и лоадер
-        resDiv.innerHTML = '<div class="loader">🐹 Гофер копает... подождите</div>';
-        btn.disabled = true;
-
-        try {
-            const url = `http://localhost:8080/scan?hostname=${host}&startport=${start}&endport=${end}`;
-            const response = await fetch(url);
+        async function runScan() {
+            const resDiv = document.getElementById('results');
+            resDiv.innerHTML = "📡 Сканирую...";
             
-            if (!response.ok) throw new Error(await response.text());
-
-            const data = await response.json();
-            
-            renderResults(data.ports);
-        } catch (err) {
-            resDiv.innerHTML = `<div class="error">Ошибка: ${err.message}</div>`;
-        } finally {
-            btn.disabled = false;
+            try {
+                const host = document.getElementById('host').value;
+                const s = document.getElementById('start').value;
+                const e = document.getElementById('end').value;
+                
+                const response = await fetch(`${API_URL}/scan?hostname=${host}&startport=${s}&endport=${e}`);
+                const data = await response.json();
+                
+                resDiv.innerHTML = `✅ Готово! Найдено: ${data.ports.length}`;
+                loadHistory(); // Сразу обновляем историю после скана
+            } catch (err) {
+                resDiv.innerHTML = "❌ Ошибка сканирования";
+            }
         }
-    });
 
-    function renderResults(ports) {
-        if (!ports || ports.length === 0) {
-            resDiv.innerHTML = '<div style="text-align:center">Открытых портов не найдено 🛑</div>';
-            return;
+        async function loadHistory() {
+            const histDiv = document.getElementById('history');
+            try {
+                const response = await fetch(`${API_URL}/history`);
+                const data = await response.json();
+                
+                histDiv.innerHTML = data.map(item => `
+                    <div class="scan-item">
+                        <strong>${item.hostname}</strong>
+                        <div class="port-list">
+                            ${item.ports.map(p => `<span class="port-tag">${p}</span>`).join('')}
+                        </div>
+                    </div>
+                `).join('') || "История пуста";
+            } catch (err) {
+                histDiv.innerHTML = "⚠️ Не удалось загрузить историю";
+            }
         }
-        
-        let html = `<strong>Найдено портов: ${ports.length}</strong><div class="port-list">`;
-        ports.forEach(p => {
-            html += `<span class="port-item">${p}</span>`;
-        });
-        html += '</div>';
-        resDiv.innerHTML = html;
-    }
-</script>
 
+        // Загружаем историю при старте
+        loadHistory();
+    </script>
 </body>
 </html>
