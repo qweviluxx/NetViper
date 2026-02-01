@@ -17,8 +17,8 @@ type Scanner struct {
 func NewScanner(protocol string) *Scanner {
 	return &Scanner{
 		Protocol:    protocol,
-		timeout:     500 * time.Millisecond,
-		workerCount: 100,
+		timeout:     1500 * time.Millisecond,
+		workerCount: 50,
 	}
 }
 

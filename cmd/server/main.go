@@ -29,9 +29,7 @@ func validation(h string, s, e int) bool {
 	return true
 }
 
-func wsHandler(w http.ResponseWriter, r *http.Request, repo repository.Repository) {
-
-	scanner := internal.NewScanner("tcp")
+func wsHandler(w http.ResponseWriter, r *http.Request, repo repository.Repository, scanner *internal.Scanner) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -74,6 +72,7 @@ func historyHandler(w http.ResponseWriter, r *http.Request, repo repository.Repo
 }
 
 func main() {
+	scanner := internal.NewScanner("tcp")
 
 	repo, err := repository.New("./scanner.db")
 	if err != nil {
@@ -81,7 +80,7 @@ func main() {
 		return
 	}
 
-	http.HandleFunc("/scan", func(w http.ResponseWriter, r *http.Request) { wsHandler(w, r, repo) })
+	http.HandleFunc("/scan", func(w http.ResponseWriter, r *http.Request) { wsHandler(w, r, repo, scanner) })
 	http.HandleFunc("/history", func(w http.ResponseWriter, r *http.Request) { historyHandler(w, r, repo) })
 
 	fmt.Println("Starting web-server on port 8080...")
