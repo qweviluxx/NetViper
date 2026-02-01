@@ -1,66 +1,62 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 
+	"github.com/gorilla/websocket"
 	"github.com/qweviluxx/GopherScanner.git/internal"
 	"github.com/qweviluxx/GopherScanner.git/internal/repository"
 )
 
-func validation(w http.ResponseWriter, h string, s, e int) bool {
+type ScanRequest struct {
+	Hostname  string `json:"hostname"`
+	StartPort int    `json:"startport"`
+	EndPort   int    `json:"endport"`
+}
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool { return true },
+}
+
+func validation(h string, s, e int) bool {
 
 	if h == "" || s < 0 || e < 0 || e < s || s > 65535 || e > 65535 {
-		http.Error(w, "Bad params", http.StatusBadRequest)
+
 		return false
 	}
 
 	return true
 }
 
-func handler(w http.ResponseWriter, r *http.Request, repo repository.Repository) {
-	scanner := internal.NewScanner("tcp")
+func wsHandler(w http.ResponseWriter, r *http.Request, repo repository.Repository, scanner *internal.Scanner) {
 
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method is not supported", http.StatusMethodNotAllowed)
-		return
-	}
-
-	params := r.URL.Query()
-
-	hostname := params.Get("hostname")
-
-	startPort, err := strconv.Atoi(params.Get("startport"))
+	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		http.Error(w, "Parsing param error:", http.StatusBadRequest)
+		return
+	}
+	defer conn.Close()
+
+	var req ScanRequest
+	if err := conn.ReadJSON(&req); err != nil {
 		return
 	}
 
-	endPort, err := strconv.Atoi(params.Get("endport"))
-	if err != nil {
-		http.Error(w, "Parsing param error:", http.StatusBadRequest)
+	if !validation(req.Hostname, req.StartPort, req.EndPort) {
+		conn.WriteJSON(map[string]string{"error": "Invalid parameters"})
 		return
 	}
 
-	valid := validation(w, hostname, startPort, endPort)
-	if !valid {
-		return
+	out := make(chan int)
+	go scanner.ScanRange(r.Context(), req.Hostname, req.StartPort, req.EndPort, out)
+
+	foundPorts := []int{}
+	for port := range out {
+		foundPorts = append(foundPorts, port)
+		conn.WriteJSON(map[string]int{"port": port})
 	}
 
-	ctx := r.Context()
-	ports := scanner.ScanRange(ctx, hostname, startPort, endPort)
-	repo.SaveDB(ports, hostname)
-
-	response := &repository.ScanResponse{Hostname: hostname, Ports: ports}
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	err = json.NewEncoder(w).Encode(response)
-	if err != nil {
-		http.Error(w, "JSON encode error", http.StatusInternalServerError)
-		return
-	}
+	repo.SaveDB(foundPorts, req.Hostname)
 }
 
 func historyHandler(w http.ResponseWriter, r *http.Request, repo repository.Repository) {
@@ -76,6 +72,7 @@ func historyHandler(w http.ResponseWriter, r *http.Request, repo repository.Repo
 }
 
 func main() {
+	scanner := internal.NewScanner("tcp")
 
 	repo, err := repository.New("./scanner.db")
 	if err != nil {
@@ -83,7 +80,7 @@ func main() {
 		return
 	}
 
-	http.HandleFunc("/scan", func(w http.ResponseWriter, r *http.Request) { handler(w, r, repo) })
+	http.HandleFunc("/scan", func(w http.ResponseWriter, r *http.Request) { wsHandler(w, r, repo, scanner) })
 	http.HandleFunc("/history", func(w http.ResponseWriter, r *http.Request) { historyHandler(w, r, repo) })
 
 	fmt.Println("Starting web-server on port 8080...")

@@ -18,7 +18,7 @@ func NewScanner(protocol string) *Scanner {
 	return &Scanner{
 		Protocol:    protocol,
 		timeout:     500 * time.Millisecond,
-		workerCount: 100,
+		workerCount: 50,
 	}
 }
 
@@ -37,19 +37,17 @@ func (s *Scanner) ScanPort(ctx context.Context, hostname string, port int) (bool
 	return true, nil
 }
 
-func (s *Scanner) ScanRange(ctx context.Context, hostname string, startPort, endPort int) []int {
+func (s *Scanner) ScanRange(ctx context.Context, hostname string, startPort, endPort int, out chan int) {
 
 	size := endPort - startPort + 1
-	openedPorts := []int{}
 
 	ports := make(chan int, size)
-	result := make(chan int)
 
 	var wg sync.WaitGroup
 
 	for i := 0; i < s.workerCount; i++ {
 		wg.Add(1)
-		go s.worker(ctx, &wg, hostname, ports, result)
+		go s.worker(ctx, &wg, hostname, ports, out)
 	}
 
 	go func() {
@@ -61,17 +59,9 @@ func (s *Scanner) ScanRange(ctx context.Context, hostname string, startPort, end
 
 	go func() {
 		wg.Wait()
-		close(result)
+		close(out)
 	}()
 
-	for p := range result {
-		res := p
-		if res != 0 {
-			openedPorts = append(openedPorts, res)
-		}
-	}
-
-	return openedPorts
 }
 
 func (s *Scanner) worker(ctx context.Context, wg *sync.WaitGroup, hostname string, ports chan int, result chan int) {
@@ -85,8 +75,6 @@ func (s *Scanner) worker(ctx context.Context, wg *sync.WaitGroup, hostname strin
 		ok, _ := s.ScanPort(ctx, hostname, i)
 		if ok {
 			result <- i
-		} else {
-			result <- 0
 		}
 	}
 }
