@@ -2,131 +2,118 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>GopherScanner</title>
+    <title>GopherScanner 🐹</title>
     <style>
         :root { --go-blue: #00add8; --dark: #2d3436; --bg: #f5f6fa; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; display: flex; height: 100vh; }
-        
-        /* Левая часть - Главная */
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; height: 100vh; }
         .main-container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
         .scanner-card { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 600px; }
-        
-        /* Правая часть - История */
         .history-sidebar { width: 350px; background: white; border-left: 1px solid #e1e4e8; display: flex; flex-direction: column; padding: 20px; overflow-y: auto; }
-        
-        h1, h2 { color: var(--dark); margin-top: 0; }
-        h1 { color: var(--go-blue); font-size: 2.5em; margin-bottom: 20px; text-align: center; }
-        
+        h1 { color: var(--go-blue); font-size: 2.5em; text-align: center; margin-bottom: 20px; }
         .input-row { display: flex; gap: 15px; margin-bottom: 20px; }
-        .input-group { flex: 1; }
-        label { display: block; margin-bottom: 5px; font-size: 0.9em; color: #666; }
-        input { width: 100%; padding: 12px; border: 2px solid #edf2f7; border-radius: 8px; font-size: 16px; outline: none; transition: border-color 0.2s; }
-        input:focus { border-color: var(--go-blue); }
-        
-        button { width: 100%; padding: 15px; background: var(--go-blue); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 18px; font-weight: 600; transition: transform 0.1s, opacity 0.2s; }
-        button:active { transform: scale(0.98); }
-        button.secondary { background: #636e72; padding: 8px; font-size: 14px; margin-bottom: 15px; }
-
-        /* Результаты сканирования */
-        #results { margin-top: 30px; padding: 20px; border-radius: 10px; background: #f8f9fa; min-height: 50px; }
-        .found-port { display: inline-block; background: var(--go-blue); color: white; padding: 5px 12px; border-radius: 20px; margin: 5px; font-family: monospace; font-weight: bold; animation: pop 0.3s ease; }
-        
-        /* История */
-        .history-item { padding: 15px; border-bottom: 1px solid #f1f1f1; animation: slide 0.3s ease; }
-        .history-item:last-child { border-bottom: none; }
-        .history-item strong { display: block; color: var(--dark); margin-bottom: 5px; }
-        .history-ports { display: flex; flex-wrap: wrap; gap: 5px; }
-        .port-mini { font-size: 11px; background: #e1f5fe; color: #01579b; padding: 2px 6px; border-radius: 4px; }
-
+        .input-group { flex: 1; margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: #666; font-size: 0.9em; }
+        input { width: 100%; padding: 12px; border: 2px solid #edf2f7; border-radius: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: var(--go-blue); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 18px; font-weight: bold; }
+        #results { margin-top: 30px; padding: 20px; border-radius: 10px; background: #f8f9fa; min-height: 100px; border: 1px dashed #cbd5e0; }
+        .found-port { display: inline-block; background: var(--go-blue); color: white; padding: 5px 12px; border-radius: 20px; margin: 5px; font-family: monospace; animation: pop 0.3s ease; }
+        .history-item { padding: 15px; border-bottom: 1px solid #f1f1f1; }
+        .port-mini { font-size: 11px; background: #e1f5fe; color: #01579b; padding: 2px 6px; border-radius: 4px; margin: 2px; display: inline-block; }
         @keyframes pop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        @keyframes slide { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     </style>
 </head>
 <body>
 
     <div class="main-container">
         <div class="scanner-card">
-            <h1>GopherScanner</h1>
-            
-            <div class="input-group" style="margin-bottom: 20px;">
+            <h1>GopherScanner 🐹</h1>
+            <div class="input-group">
                 <label>Цель (IP или Домен)</label>
-                <input type="text" id="host" value="localhost" placeholder="google.com">
+                <input type="text" id="host" value="localhost">
             </div>
-
             <div class="input-row">
                 <div class="input-group">
-                    <label>Начальный порт</label>
-                    <input type="number" id="start" value="80">
+                    <label>Начало</label>
+                    <input type="number" id="start" value="1">
                 </div>
                 <div class="input-group">
-                    <label>Конечный порт</label>
-                    <input type="number" id="end" value="1000">
+                    <label>Конец</label>
+                    <input type="number" id="end" value="1024">
                 </div>
             </div>
-
-            <button onclick="runScan()">Запустить сканирование</button>
-
-            <div id="results">
-                <span style="color: #a0aec0;">Результаты появятся здесь...</span>
-            </div>
+            <button id="scanBtn" onclick="runWSScan()">Запустить Live-сканирование</button>
+            <div id="results">Ожидание запуска...</div>
         </div>
     </div>
 
     <div class="history-sidebar">
         <h2>История</h2>
-        <button class="secondary" onclick="loadHistory()">Обновить список</button>
         <div id="history-list"></div>
     </div>
 
     <script>
-        const API_URL = 'http://localhost:8080';
-
-        async function runScan() {
+        function runWSScan() {
             const resDiv = document.getElementById('results');
-            resDiv.innerHTML = "📡 <strong>Сканирую...</strong><br>";
-            
+            const btn = document.getElementById('scanBtn');
             const host = document.getElementById('host').value;
-            const s = document.getElementById('start').value;
-            const e = document.getElementById('end').value;
+            const start = parseInt(document.getElementById('start').value);
+            const end = parseInt(document.getElementById('end').value);
 
-            try {
-                const response = await fetch(`${API_URL}/scan?hostname=${host}&startport=${s}&endport=${e}`);
-                const data = await response.json();
-                
-                if (data.ports && data.ports.length > 0) {
-                    resDiv.innerHTML = `<div>✅ Найдено портов: ${data.ports.length}</div>`;
-                    data.ports.forEach(p => {
-                        resDiv.innerHTML += `<span class="found-port">${p}</span>`;
-                    });
-                } else {
-                    resDiv.innerHTML = "✅ Сканирование завершено. Открытых портов не найдено.";
+            resDiv.innerHTML = "📡 <strong>Соединение...</strong><br>";
+            btn.disabled = true;
+
+            // Открываем WebSocket
+            const socket = new WebSocket("ws://localhost:8080/scan");
+
+            socket.onopen = () => {
+                resDiv.innerHTML = "📡 <strong>Сканирую в реальном времени...</strong><br>";
+                // Шлем настройки сканирования в JSON
+                socket.send(JSON.stringify({
+                    hostname: host,
+                    startport: start,
+                    endport: end
+                }));
+            };
+
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.error) {
+                    resDiv.innerHTML += `<div style="color:red">Ошибка: ${data.error}</div>`;
+                } else if (data.port) {
+                    // Добавляем порт сразу, как только он прилетел!
+                    const span = document.createElement('span');
+                    span.className = 'found-port';
+                    span.innerText = data.port;
+                    resDiv.appendChild(span);
                 }
-                loadHistory(); // Обновляем сайдбар
-            } catch (err) {
-                resDiv.innerHTML = "<span style='color:red'>❌ Ошибка: проверьте, запущен ли сервер Go</span>";
-            }
+            };
+
+            socket.onclose = () => {
+                resDiv.innerHTML += "<div><br>✅ Сканирование завершено.</div>";
+                btn.disabled = false;
+                loadHistory(); // Обновляем историю в сайдбаре
+            };
+
+            socket.onerror = (err) => {
+                resDiv.innerHTML = "❌ Ошибка связи с сервером";
+                btn.disabled = false;
+            };
         }
 
         async function loadHistory() {
             const list = document.getElementById('history-list');
             try {
-                const response = await fetch(`${API_URL}/history`);
+                const response = await fetch('http://localhost:8080/history');
                 const data = await response.json();
-                
                 list.innerHTML = data.reverse().map(item => `
                     <div class="history-item">
                         <strong>${item.hostname}</strong>
-                        <div class="history-ports">
-                            ${item.ports.map(p => `<span class="port-mini">${p}</span>`).join('')}
-                        </div>
+                        <div>${item.ports ? item.ports.map(p => `<span class="port-mini">${p}</span>`).join('') : 'Нет портов'}</div>
                     </div>
-                `).join('') || "Пока ничего не сканировали";
-            } catch (err) {
-                list.innerHTML = "Ошибка загрузки данных";
-            }
+                `).join('');
+            } catch (e) { console.error(e); }
         }
 
-        // Загрузка при открытии
         loadHistory();
     </script>
 </body>
