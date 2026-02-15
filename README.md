@@ -1,34 +1,31 @@
-# GopherScanner 🐹
+# 🐍 NetViper
 
-Высокопроизводительный многопоточный сканер портов на языке **Go** с веб-интерфейсом.
+**NetViper** is a high-performance network exploration and connection analysis tool. It combines a fast multi-threaded port scanner with a versatile traffic interceptor, built entirely in Go.
 
-## 🚀 Особенности
-- **Многопоточность**: Использование паттерна **Worker Pool** для одновременного сканирования сотен портов.
-- **Чистая архитектура**: Логика сканирования вынесена в отдельный пакет `internal`, а веб-сервер - в `cmd`.
-- **Backend**: Написан на стандартной библиотеке `net/http` без внешних фреймворков.
-- **Frontend**: Легкий интерфейс на чистом HTML/JavaScript (Fetch API).
-- **Валидация**: Проверка входных данных на стороне сервера.
+## 🌟 Key Features
 
-## 🛠 Технологии
-- **Go** (Concurrency, JSON Serialization)
-- **HTML5 / CSS3**
-- **JavaScript** (Async/Await, Fetch)
+### 📡 Port Scanner (Ready)
+- **Live Streaming**: Results are instantly pushed to the web interface via WebSockets.
+- **Worker Pool Architecture**: Efficient resource management for scanning wide port ranges.
+- **Persistent History**: Automated scan result storage using a local SQLite database.
 
-## 📦 Как запустить
+### 🔄 TCP Proxy (Under Development 🛠)
+- **Traffic Interception**: Seamlessly redirect data streams between a client and a target server.
+- **Real-time Inspection**: View raw byte streams directly in your browser.
+- **Bidirectional Logging**: Capture both request and response payloads for deep analysis.
 
-1. Клонируйте репозиторий:
-   ```bash
-   git clone [https://github.com/ваш-логин/GopherScanner.git](https://github.com/ваш-логин/GopherScanner.git)
-   ```
-2. Запустите веб-сервер:
-    ```bash
-    go run cmd/server/main.go
-    ```
-3. Откройте файл web/index.html в вашем браузере.
+## 🛠 Tech Stack
+- **Core:** Go (native net stack, goroutines, channels)
+- **Interface:** HTML5, CSS3, JavaScript (Vanilla JS)
+- **API:** WebSockets (Gorilla) & REST
+- **Database:** SQLite 3 (CGO-free driver)
 
-## ⚙️ Настройка
-
-Вы можете изменить количество воркеров в конструкторе сканера в файле internal/scanner.go:
-```Go
-workerCount: 100 // По умолчанию 100 потоков
-```
+## 🏗 Project Structure
+```text
+.
+├── cmd/server/       # Application entry point (main.go)
+├── internal/
+│   ├── scanner/      # Port scanning engine & logic
+│   ├── proxy/        # TCP Proxy engine (upcoming)
+│   └── repository/   # Data persistence & history management
+└── ui/               # Web-interface assets
