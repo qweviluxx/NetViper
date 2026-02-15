@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/gorilla/websocket"
-	"github.com/qweviluxx/GopherScanner.git/internal"
-	"github.com/qweviluxx/GopherScanner.git/internal/repository"
+	"github.com/qweviluxx/NetViper.git/internal/repository"
+	internal "github.com/qweviluxx/NetViper.git/internal/scanner"
 )
 
 type ScanRequest struct {
