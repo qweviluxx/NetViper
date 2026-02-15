@@ -1,4 +1,4 @@
-module github.com/qweviluxx/GopherScanner.git
+module github.com/qweviluxx/NetViper.git
 
 go 1.25.3
 
